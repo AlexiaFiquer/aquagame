@@ -1,0 +1,1151 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Aquagame</title>
+    <link
+      rel="icon"
+      type="image/png"
+      href="https://aquagame.aquaticaamericanpark.com.br/ganhe-desconto/assets/favicon.svg"
+    />
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/addons/p5.sound.min.js"></script>
+
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        height: 100%;
+        width: 100%;
+      }
+
+      canvas {
+        display: block;
+      }
+
+      .toast {
+        visibility: hidden;
+        background-color: rgba(0, 0, 0, 0.85);
+        color: #fff;
+        text-align: center;
+        border-radius: 8px;
+
+        position: fixed;
+        left: 50%;
+        bottom: 5vh;
+        transform: translateX(-50%);
+
+        width: 85vw;
+        max-width: 420px;
+
+        padding: 2.2vh 4vw;
+
+        font-size: clamp(16px, 2.2vh, 22px);
+        font-weight: bold;
+        line-height: 1.4;
+
+        z-index: 9999;
+        transition: opacity 0.4s ease;
+        opacity: 0;
+      }
+
+      .toast.show {
+        visibility: visible;
+        opacity: 1;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="toast" class="toast"></div>
+
+    <script>
+      let capivara;
+      let capivaraStanding;
+      let capivaraAtual;
+      let capivaraX;
+      let boias = [];
+      let pedras = [];
+      let fundo;
+      let fundoCancun;
+      let backgroundLoading;
+
+      let vidas = 3;
+      let tempo = 30;
+      let pontos = 0;
+      let ultimoSpawn = 0;
+      let intervaloSpawn = 0;
+
+      let pedraImg, boiaAzul, boiaConfete;
+      let gameOverImg, tryAgainIcon;
+      let isMobile = false;
+      let arrastando = false;
+      let capivaraSurfista;
+      let capivaraSurfistaPulando;
+      let velocidadeBonus = 0;
+      let velocidadeReal = 0;
+
+      let fundoBaleia, fundoMalibu;
+      let capivaraPai, capivaraPaiPulando;
+      let capivaraMae, capivaraMaePulando;
+      let modoAvancado = false;
+      let marco150Ativado = false;
+      let marco250Ativado = false;
+      let marco350Ativado = false;
+      let musicaFundo;
+      let lastBackPress = 0;
+      let jogoAtivo = true;
+      let carregandoImgs = [];
+      let indiceImagemCarregando = 0;
+      let tempoTrocaImagem = 0;
+      let tempoFimCarregamento = 0;
+      const TEMPO_MINIMO_CARREGAMENTO = 4000;
+      let ultimoTempoAtualizado = 0;
+      let carregamentoCompleto = false;
+      let premio = null;
+      let cupomImgs = {};
+      let margemTela = 40;
+      let wakeLock = null;
+      let itemSize = 0;
+      let tryAgainBtn = null;
+      const totalLanes = 4;
+      let lanes = [];
+
+      let imagensParaCarregar = [
+        {
+          name: "fundo",
+          url: "./assets/bg-orlando.png",
+        },
+        {
+          name: "fundoCancun",
+          url: "./assets/bg-miami.png",
+        },
+        {
+          name: "capivara",
+          url: "./assets/aquapow.png",
+        },
+        {
+          name: "capivaraStanding",
+          url: "./assets/aquapow-pulando.png",
+        },
+        {
+          name: "capivaraSurfista",
+          url: "./assets/aquarao.png",
+        },
+        {
+          name: "capivaraSurfistaPulando",
+          url: "./assets/aquarao-pulando.png",
+        },
+        {
+          name: "pedraImg",
+          url: "./assets/gelo.png",
+        },
+        {
+          name: "boiaAzul",
+          url: "./assets/boia-azul.png",
+        },
+        {
+          name: "boiaConfete",
+          url: "./assets/confete.png",
+        },
+        {
+          name: "gameOverImg",
+          url: "./assets/game-over.png",
+        },
+        {
+          name: "tryAgainIcon",
+          url: "./assets/try-again.png",
+        },
+        {
+          name: "fundoBaleia",
+          url: "./assets/bg-hawaii.png",
+        },
+        {
+          name: "fundoMalibu",
+          url: "./assets/bg-malibu.png",
+        },
+        {
+          name: "capivaraPai",
+          url: "./assets/aqualeia.png",
+        },
+        {
+          name: "capivaraPaiPulando",
+          url: "./assets/aqualeia-pulando.png",
+        },
+        {
+          name: "capivaraMae",
+          url: "./assets/aquacapy.png",
+        },
+        {
+          name: "capivaraMaePulando",
+          url: "./assets/aquacapy-pulando.png",
+        },
+        {
+          name: "carregando1",
+          url: "./assets/surfando.png",
+        },
+        {
+          name: "carregando2",
+          url: "./assets/surfando-2.png",
+        },
+
+        {
+          name: "microfone",
+          url: "./assets/microfone.png",
+        },
+        {
+          name: "coco",
+          url: "./assets/coco.png",
+        },
+        {
+          name: "parasol",
+          url: "./assets/parasol.png",
+        },
+        {
+          name: "frio",
+          url: "./assets/frio.png",
+        },
+        {
+          name: "sorvete",
+          url: "./assets/sorvete.png",
+        },
+        {
+          name: "donuts",
+          url: "./assets/donuts.png",
+        },
+        {
+          name: "chuva",
+          url: "./assets/chuva.png",
+        },
+        {
+          name: "flor",
+          url: "./assets/flor.png",
+        },
+        {
+          name: "cupom10",
+          url: "./assets/cupom10.png",
+        },
+        {
+          name: "cupom15",
+          url: "./assets/cupom15.png",
+        },
+        {
+          name: "cupom20",
+          url: "./assets/cupom20.png",
+        },
+        {
+          name: "cupomFree",
+          url: "./assets/cupom100.png",
+        },
+      ];
+
+      let somParaCarregar = {
+        name: "musicaFundo",
+        url: "./assets/musica-aquafofos.mp3",
+      };
+
+      let imagensCarregadas = {};
+      let totalAssets = imagensParaCarregar.length + 1;
+      let assetsCarregados = 0;
+
+      let frases = [
+        "Chamando todos os aquafofos...",
+        "Passando protetor solar...",
+        "Ligando as ondas...",
+        "Ativando o modo Aquática Turbo...",
+        "Prontos para a diversão...",
+      ];
+      let fraseAtual = 0;
+      let tempoFrase = 0;
+
+      function carregarAssets() {
+        imagensParaCarregar.forEach((asset) => {
+          loadImage(
+            asset.url,
+            (img) => {
+              imagensCarregadas[asset.name] = img;
+              if (
+                asset.name === "carregando1" ||
+                asset.name === "carregando2"
+              ) {
+                carregandoImgs.push(img);
+              }
+              assetsCarregados++;
+              checarFimCarregamento();
+            },
+            (err) => {
+              console.error(`Erro carregando imagem ${asset.name}`);
+              assetsCarregados++;
+              checarFimCarregamento();
+            },
+          );
+        });
+
+        loadSound(
+          somParaCarregar.url,
+          (snd) => {
+            musicaFundo = snd;
+            assetsCarregados++;
+            checarFimCarregamento();
+          },
+          (err) => {
+            console.error("Erro carregando música");
+            assetsCarregados++;
+            checarFimCarregamento();
+          },
+        );
+      }
+
+      function checarFimCarregamento() {
+        if (assetsCarregados >= totalAssets && tempoFimCarregamento === 0) {
+          tempoFimCarregamento = millis();
+        }
+      }
+
+      function iniciarJogo() {
+        fundo = imagensCarregadas.fundo;
+        fundoCancun = imagensCarregadas.fundoCancun;
+        capivara = imagensCarregadas.capivara;
+        cupomImgs = {
+          10: imagensCarregadas.cupom10,
+          15: imagensCarregadas.cupom15,
+          20: imagensCarregadas.cupom20,
+          free: imagensCarregadas.cupomFree,
+        };
+        capivaraStanding = imagensCarregadas.capivaraStanding;
+        capivaraSurfista = imagensCarregadas.capivaraSurfista;
+        capivaraSurfistaPulando = imagensCarregadas.capivaraSurfistaPulando;
+        pedraImg = imagensCarregadas.pedraImg;
+        boiaAzul = imagensCarregadas.boiaAzul;
+        boiaConfete = imagensCarregadas.boiaConfete;
+        pedraChuva = imagensCarregadas.chuva;
+        pedraFrio = imagensCarregadas.frio;
+
+        boiaMicrofone = imagensCarregadas.microfone;
+        boiaCoco = imagensCarregadas.coco;
+        boiaParasol = imagensCarregadas.parasol;
+        boiaFrio = imagensCarregadas.frio;
+        boiaSorvete = imagensCarregadas.sorvete;
+        boiaDonuts = imagensCarregadas.donuts;
+        boiaFlor = imagensCarregadas.flor;
+
+        gameOverImg = imagensCarregadas.gameOverImg;
+        tryAgainIcon = imagensCarregadas.tryAgainIcon;
+        fundoBaleia = imagensCarregadas.fundoBaleia;
+        fundoMalibu = imagensCarregadas.fundoMalibu;
+        capivaraPai = imagensCarregadas.capivaraPai;
+        capivaraPaiPulando = imagensCarregadas.capivaraPaiPulando;
+        capivaraMae = imagensCarregadas.capivaraMae;
+        capivaraMaePulando = imagensCarregadas.capivaraMaePulando;
+        capivaraAtual = capivara;
+        loop();
+        //if (musicaFundo) {
+        //  musicaFundo.loop();
+        // }
+        if (isMobile) {
+          ativarWakeLock();
+        }
+        ultimoSpawn = millis();
+      }
+
+      function preload() {
+        backgroundLoading = loadImage(
+          "https://aquagame.aquaticaamericanpark.com.br/ganhe-desconto/assets/bg-loading.png",
+        );
+
+        let imagensLoading = [
+          {
+            name: "carregando1",
+            url: "./assets/surfando.png",
+          },
+          {
+            name: "carregando2",
+            url: "./assets/surfando-2.png",
+          },
+        ];
+
+        imagensLoading.forEach((img) => {
+          loadImage(img.url, (loadedImg) => {
+            carregandoImgs.push(loadedImg);
+          });
+        });
+      }
+
+      function setup() {
+        isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        isIphone = /iPhone|iPod/i.test(navigator.userAgent);
+
+        createCanvas(windowWidth, windowHeight);
+        if (isMobile) {
+          pixelDensity(1);
+        }
+        frameRate(60);
+
+        capivaraX = width / 2;
+        capivaraAtual = capivara;
+
+        carregarAssets();
+
+        let laneWidth = (width - margemTela * 2) / totalLanes;
+
+        for (let i = 0; i < totalLanes; i++) {
+          lanes.push(margemTela + i * laneWidth + laneWidth / 2 - itemSize / 2);
+        }
+
+        document.addEventListener("touchmove", (e) => e.preventDefault(), {
+          passive: false,
+        });
+
+        document.addEventListener("visibilitychange", () => {
+          if (document.hidden) {
+            if (musicaFundo && musicaFundo.isPlaying()) musicaFundo.pause();
+          } else {
+            if (musicaFundo && !musicaFundo.isPlaying()) musicaFundo.loop();
+            if (isMobile) ativarWakeLock();
+          }
+        });
+
+        window.onpopstate = function () {
+          showToast("Pressione novamente para sair");
+          history.pushState(null, null, location.href);
+        };
+        history.pushState(null, null, location.href);
+      }
+
+      function desenharTelaLoading() {
+        let imgAspect = backgroundLoading.width / backgroundLoading.height;
+        let canvasAspect = width / height;
+
+        let drawWidth, drawHeight;
+        let offsetX = 0;
+        let offsetY = 0;
+
+        if (canvasAspect > imgAspect) {
+          drawWidth = width;
+          drawHeight = width / imgAspect;
+          offsetY = (height - drawHeight) / 2;
+        } else {
+          drawHeight = height;
+          drawWidth = height * imgAspect;
+          offsetX = (width - drawWidth) / 2;
+        }
+
+        image(backgroundLoading, offsetX, offsetY, drawWidth, drawHeight);
+
+        noStroke();
+
+        tempoTrocaImagem++;
+        if (tempoTrocaImagem > 60) {
+          indiceImagemCarregando =
+            (indiceImagemCarregando + 1) % carregandoImgs.length;
+          tempoTrocaImagem = 0;
+        }
+
+        if (
+          carregandoImgs.length > 0 &&
+          carregandoImgs[indiceImagemCarregando]
+        ) {
+          let img = carregandoImgs[indiceImagemCarregando];
+
+          let imgW = isMobile ? width * 0.6 : width * 0.3;
+          let imgH = imgW * (img.height / img.width);
+
+          let barraWidth = width * 0.6;
+          let barraHeight = 20;
+
+          if (!isMobile) {
+            let textoAltura = 30;
+            let espacamento = 20;
+
+            let alturaBloco =
+              imgH + espacamento + barraHeight + espacamento + textoAltura;
+
+            let yBase = (height - alturaBloco) / 2;
+
+            let yImg = yBase;
+            let yBar = yImg + imgH + espacamento;
+            let yTexto = yBar + barraHeight + espacamento;
+
+            image(img, width / 2 - imgW / 2, yImg, imgW, imgH);
+
+            fill("#fff");
+            rect((width - barraWidth) / 2, yBar, barraWidth, barraHeight, 10);
+
+            fill("#e79f3e");
+            let progresso = assetsCarregados / totalAssets;
+            rect(
+              (width - barraWidth) / 2,
+              yBar,
+              barraWidth * progresso,
+              barraHeight,
+              10,
+            );
+
+            tempoFrase++;
+            if (tempoFrase > 120) {
+              fraseAtual = (fraseAtual + 1) % frases.length;
+              tempoFrase = 0;
+            }
+
+            let alpha = map(tempoFrase, 0, 120, 0, 255);
+            if (tempoFrase > 60) alpha = map(tempoFrase, 60, 120, 255, 0);
+
+            fill(255, alpha);
+            textAlign(CENTER, CENTER);
+            textSize(20);
+            text(frases[fraseAtual], width / 2, yTexto + textoAltura / 2);
+          }
+
+          if (isMobile) {
+            let espacamento = 35;
+            let espacamentoTexto = 55;
+            let barraMobileW = width * 0.85;
+            let barraMobileH = 34;
+            let textoAltura = width * 0.06;
+
+            let blocoAltura =
+              imgH +
+              espacamento +
+              barraMobileH +
+              espacamentoTexto +
+              textoAltura;
+
+            let yInicio = (height - blocoAltura) / 2;
+
+            let yImg = yInicio;
+            let yBar = yImg + imgH + espacamento;
+            let yTexto = yBar + barraMobileH + espacamentoTexto;
+
+            image(img, width / 2 - imgW / 2, yImg, imgW, imgH);
+
+            let xBar = (width - barraMobileW) / 2;
+
+            fill("#fff");
+            rect(xBar, yBar, barraMobileW, barraMobileH, 12);
+
+            fill("#e79f3e");
+            let progresso = assetsCarregados / totalAssets;
+            rect(xBar, yBar, barraMobileW * progresso, barraMobileH, 12);
+
+            tempoFrase++;
+            if (tempoFrase > 120) {
+              fraseAtual = (fraseAtual + 1) % frases.length;
+              tempoFrase = 0;
+            }
+
+            let alpha = map(tempoFrase, 0, 120, 0, 255);
+            if (tempoFrase > 60) alpha = map(tempoFrase, 60, 120, 255, 0);
+
+            fill(255, alpha);
+            textAlign(CENTER, CENTER);
+            textSize(width * 0.06);
+            text(frases[fraseAtual], width / 2, yTexto);
+          }
+        }
+      }
+
+      function showToast(message, duration = 3000) {
+        const toast = document.getElementById("toast");
+        toast.textContent = message;
+        toast.classList.add("show");
+
+        setTimeout(() => {
+          toast.classList.remove("show");
+        }, duration);
+      }
+
+      async function ativarWakeLock() {
+        try {
+          if ("wakeLock" in navigator) {
+            wakeLock = await navigator.wakeLock.request("screen");
+            console.log("Wake Lock ativado");
+
+            wakeLock.addEventListener("release", () => {
+              console.log("Wake Lock liberado");
+            });
+          }
+        } catch (err) {
+          console.warn("Wake Lock falhou:", err);
+        }
+      }
+
+      window.onpopstate = function (event) {
+        showToast("Pressione novamente para sair");
+        history.pushState(null, null, location.href);
+      };
+
+      history.pushState(null, null, location.href);
+
+      function windowResized() {
+        resizeCanvas(windowWidth, windowHeight);
+        capivaraX = constrain(capivaraX, 0, width);
+      }
+
+      function draw() {
+        let dt = deltaTime / 1000;
+        if (isMobile) {
+          dt *= 2;
+        }
+        dt = min(dt, 0.05);
+
+        if (assetsCarregados < totalAssets) {
+          desenharTelaLoading();
+          return;
+        }
+
+        if (!carregamentoCompleto) {
+          if (millis() - tempoFimCarregamento >= TEMPO_MINIMO_CARREGAMENTO) {
+            console.log("Iniciando jogo...");
+            carregamentoCompleto = true;
+            iniciarJogo();
+            loop();
+          } else {
+            desenharTelaLoading();
+            return;
+          }
+        }
+
+        background(255);
+        let imgAspect = fundo.width / fundo.height;
+        let canvasAspect = width / height;
+        let drawWidth,
+          drawHeight,
+          offsetX = 0,
+          offsetY = 0;
+        if (canvasAspect > imgAspect) {
+          drawWidth = width;
+          drawHeight = width / imgAspect;
+          offsetY = (height - drawHeight) / 2;
+        } else {
+          drawHeight = height;
+          drawWidth = height * imgAspect;
+          offsetX = (width - drawWidth) / 2;
+        }
+        let fundoAtual = fundo;
+        if (pontos >= 300) fundoAtual = fundoMalibu;
+        else if (pontos >= 200) fundoAtual = fundoBaleia;
+        else if (pontos >= 100) fundoAtual = fundoCancun;
+
+        image(fundoAtual, offsetX, offsetY, drawWidth, drawHeight);
+
+        let pontosParaVelocidade = Math.min(pontos, 320);
+        velocidadeBonus = jogoAtivo ? Math.floor(pontosParaVelocidade / 80) : 0;
+
+        if (!marco150Ativado && pontos >= 100) {
+          tempo = 20;
+          vidas = 3;
+          marco150Ativado = true;
+          modoAvancado = true;
+        }
+        if (!marco250Ativado && pontos >= 200) {
+          tempo = 10;
+          vidas = 3;
+          marco250Ativado = true;
+        }
+        if (!marco350Ativado && pontos >= 300) {
+          tempo = 7;
+          vidas = 3;
+          marco350Ativado = true;
+        }
+        if (jogoAtivo && millis() - ultimoTempoAtualizado >= 1000) {
+          if (tempo > 0 && vidas > 0) {
+            tempo--;
+            ultimoTempoAtualizado = millis();
+          }
+        }
+
+        let escalaCapivara = height * 0.16;
+        let escalaItens = height * 0.12;
+        itemSize = escalaItens * 0.6;
+
+        let imagemCapivaraFinal;
+        if (pontos >= 300)
+          imagemCapivaraFinal = arrastando ? capivaraMaePulando : capivaraMae;
+        else if (pontos >= 200)
+          imagemCapivaraFinal = arrastando ? capivaraPaiPulando : capivaraPai;
+        else if (modoAvancado)
+          imagemCapivaraFinal = arrastando
+            ? capivaraSurfistaPulando
+            : capivaraSurfista;
+        else imagemCapivaraFinal = capivaraAtual;
+
+        image(
+          imagemCapivaraFinal,
+          capivaraX - escalaCapivara / 2,
+          height - escalaCapivara - 20,
+          escalaCapivara,
+          escalaCapivara,
+        );
+
+        if (!isMobile) {
+          if (keyIsDown(LEFT_ARROW)) capivaraX -= 5;
+          if (keyIsDown(RIGHT_ARROW)) capivaraX += 5;
+        }
+        capivaraX = constrain(capivaraX, 0, width);
+
+        let agora = millis();
+
+        let intervaloBase = isMobile ? 950 : 700;
+        let aumentoFrequencia = 1 + Math.floor(pontos / 80) * 0.25;
+        intervaloSpawn = max(
+          intervaloBase / aumentoFrequencia,
+          isMobile ? 650 : 350,
+        );
+        if (jogoAtivo && agora - ultimoSpawn > intervaloSpawn) {
+          let quantidade = 1;
+
+          if (pontos >= 300) {
+            quantidade = 2;
+          }
+
+          for (let i = 0; i < quantidade; i++) {
+            gerarItem();
+          }
+
+          let maxItens = isMobile ? 3 : 4;
+          if (pedras.length + boias.length > maxItens * 5) {
+          }
+
+          ultimoSpawn = agora;
+        }
+
+        let baseVelocidade = 480;
+
+        let multiplicadorPorNivel = 0.22;
+
+        velocidadeReal =
+          baseVelocidade * (1 + multiplicadorPorNivel * velocidadeBonus);
+
+        for (let i = pedras.length - 1; i >= 0; i--) {
+          let p = pedras[i];
+
+          image(p.tipo, p.x, p.y, itemSize, itemSize);
+
+          p.y += velocidadeReal * dt;
+
+          let distancia = dist(
+            p.x + itemSize / 2,
+            p.y + itemSize / 2,
+            capivaraX,
+            height - itemSize / 2 - 20,
+          );
+
+          if (jogoAtivo && distancia < itemSize) {
+            vidas--;
+            pedras.splice(i, 1);
+          } else if (p.y > height) {
+            pedras.splice(i, 1);
+          }
+        }
+
+        for (let i = boias.length - 1; i >= 0; i--) {
+          let b = boias[i];
+          image(b.tipo, b.x, b.y, itemSize, itemSize);
+
+          if (jogoAtivo) {
+            b.y += velocidadeReal * dt;
+          }
+
+          if (
+            dist(b.x, b.y, capivaraX, height - itemSize / 2 - 20) < itemSize
+          ) {
+            if (!jogoAtivo) continue;
+
+            tempo += 2;
+            pontos += 5;
+            boias.splice(i, 1);
+          } else if (b.y > height) {
+            boias.splice(i, 1);
+          }
+        }
+
+        if (vidas > 0 && tempo > 0) {
+          let textSizeVal = height * 0.03;
+          let lineHeight = textSizeVal * 1.2;
+          fill(255);
+          stroke(0, 128);
+          strokeWeight(1.4);
+          textSize(textSizeVal);
+          textAlign(LEFT, TOP);
+          textStyle(BOLD);
+          text(`⏱️ Tempo: ${tempo}`, 20, 20);
+          text(`❤️ Vidas: ${vidas}`, 20, 20 + lineHeight);
+          text(`⭐ Pontuação: ${pontos}`, 20, 20 + lineHeight * 2);
+          noStroke();
+        }
+
+        if (vidas <= 0 || tempo <= 0) {
+          jogoAtivo = false;
+          fill(0, 0, 0, 102);
+          rect(0, 0, width, height);
+          let centerX = width / 2;
+          let centerY = height / 2;
+          if (typeof premio === "undefined") premio = null;
+          if (premio === null) {
+            premio = sortearPremio(pontos);
+          }
+          const temPremio = premio !== null && cupomImgs[premio];
+          if (temPremio) {
+            fill(255);
+            noStroke();
+            textAlign(CENTER, CENTER);
+            textStyle(BOLD);
+            textSize(min(height * 0.05, 42));
+
+            let cupomW, cupomH, cupomY, pontosY, baseY;
+
+            if (isMobile) {
+              fill(255);
+              noStroke();
+              textAlign(CENTER, CENTER);
+              textStyle(BOLD);
+
+              let tituloSize = height * 0.065;
+              let pontosSize = height * 0.045;
+              let botaoTextoSize = height * 0.038;
+              let iconSize = height * 0.09;
+
+              textSize(tituloSize);
+
+              let yAtual = height * 0.18;
+
+              text("VOCÊ GANHOU!", width / 2, yAtual);
+              yAtual += tituloSize * 1.8;
+
+              const aspect = cupomImgs[premio].height / cupomImgs[premio].width;
+
+              cupomW = width * 0.9;
+              cupomH = cupomW * aspect;
+
+              image(
+                cupomImgs[premio],
+                width / 2 - cupomW / 2,
+                yAtual,
+                cupomW,
+                cupomH,
+              );
+
+              yAtual += cupomH + height * 0.04;
+
+              textSize(pontosSize);
+              stroke(0);
+              strokeWeight(1.5);
+              text(`⭐ Pontos: ${pontos}`, width / 2, yAtual);
+              noStroke();
+
+              yAtual += pontosSize * 2;
+
+              let iconX = width / 2 - iconSize / 2;
+              let iconY = yAtual;
+
+              image(tryAgainIcon, iconX, iconY, iconSize, iconSize);
+              tryAgainBtn = {
+                x: iconX,
+                y: iconY,
+                size: iconSize,
+              };
+
+              yAtual += iconSize + 20;
+
+              textSize(botaoTextoSize);
+              fill(255);
+              stroke(0);
+              strokeWeight(1.2);
+              text("Tentar novamente", width / 2, yAtual);
+              noStroke();
+            } else {
+              const cupomAspect =
+                cupomImgs[premio].height / cupomImgs[premio].width;
+              const maxW = width * 0.55;
+              const maxH = height * 0.45;
+              const wByH = maxH / cupomAspect;
+              cupomW = Math.min(maxW, wByH);
+              cupomH = cupomW * cupomAspect;
+              cupomY = centerY - cupomH / 2 - 80;
+              image(
+                cupomImgs[premio],
+                centerX - cupomW / 2,
+                cupomY,
+                cupomW,
+                cupomH,
+              );
+              pontosY = cupomY + cupomH + 40;
+              baseY = pontosY + 60;
+
+              text("VOCÊ GANHOU!", width / 2, cupomY - 30);
+
+              fill(255);
+              stroke(0);
+              strokeWeight(1.4);
+              textStyle(BOLD);
+              textSize(height * 0.045);
+              text(`⭐ Pontos: ${pontos}`, width / 2, pontosY);
+              noStroke();
+
+              let iconSize = height * 0.08;
+              let iconX = width / 2 - iconSize / 2;
+              let iconY = baseY;
+              image(tryAgainIcon, iconX, iconY, iconSize, iconSize);
+              tryAgainBtn = {
+                x: iconX,
+                y: iconY,
+                size: iconSize,
+              };
+
+              textSize(height * 0.035);
+              fill(255);
+              stroke(0);
+              strokeWeight(1);
+              let textY = iconY + iconSize + 25;
+              text("Tentar novamente", width / 2, textY);
+              noStroke();
+            }
+          } else {
+            fill(255);
+            noStroke();
+            textAlign(CENTER, CENTER);
+            textStyle(BOLD);
+
+            let mensagemSize = height * 0.04;
+            let iconSize = height * 0.09;
+
+            let yAtual;
+
+            if (isMobile) {
+              yAtual = height * 0;
+
+              const aspect = gameOverImg.height / gameOverImg.width;
+              let imgW = width * 1.15;
+              let imgH = imgW * aspect;
+
+              image(gameOverImg, width / 2 - imgW / 2, yAtual, imgW, imgH);
+
+              yAtual += imgH * 0.76;
+            } else {
+              let imgW = width * 0.9;
+              const aspect = gameOverImg.height / gameOverImg.width;
+              let imgH = imgW * aspect;
+
+              let offsetY = imgH * 0.38;
+
+              image(gameOverImg, width / 2 - imgW / 2, -offsetY, imgW, imgH);
+
+              yAtual = height * 0.55;
+            }
+
+            let margem = width * 0.08;
+            textSize(mensagemSize);
+            stroke(0);
+            strokeWeight(1.2);
+            text(
+              "Tente novamente para conseguir um prêmio",
+              margem,
+              yAtual,
+              width - margem * 2,
+            );
+            noStroke();
+
+            let alturaTexto = textAscent() + textDescent();
+            yAtual += alturaTexto * 2.2;
+
+            let iconX = width / 2 - iconSize / 2;
+            let iconY = yAtual;
+
+            image(tryAgainIcon, iconX, iconY, iconSize, iconSize);
+
+            let textY = iconY + iconSize + 18;
+
+            textSize(mensagemSize);
+            fill(255);
+            stroke(0);
+            strokeWeight(1.2);
+            text("Tentar novamente", width / 2, textY);
+            noStroke();
+
+            tryAgainBtn = {
+              x: iconX,
+              y: iconY,
+              size: iconSize,
+            };
+          }
+        }
+      }
+
+      function pegarLaneLivre() {
+        let ocupadas = [];
+
+        let todos = pedras.concat(boias);
+
+        for (let item of todos) {
+          if (item.y < itemSize * 2) {
+            ocupadas.push(item.lane);
+          }
+        }
+
+        let livres = lanes
+          .map((_, i) => i)
+          .filter((i) => !ocupadas.includes(i));
+
+        if (livres.length === 0) return floor(random(totalLanes));
+
+        return random(livres);
+      }
+
+      function gerarItem() {
+        let pedraAtual;
+        let boiasAtuais = [];
+
+        if (pontos >= 300) {
+          pedraAtual = pedraChuva;
+          boiasAtuais = [boiaMicrofone, boiaConfete];
+        } else if (pontos >= 200) {
+          pedraAtual = pedraFrio;
+          boiasAtuais = [boiaDonuts, boiaAzul];
+        } else if (pontos >= 100) {
+          pedraAtual = pedraChuva;
+          boiasAtuais = [boiaParasol, boiaCoco];
+        } else {
+          pedraAtual = pedraFrio;
+          boiasAtuais = [boiaFlor, boiaSorvete];
+        }
+
+        let lane = pegarLaneLivre();
+        let xPos = lanes[lane];
+
+        if (random() < 0.45) {
+          pedras.push({
+            x: xPos,
+            y: random(-height * 0.6, -itemSize),
+
+            tipo: pedraAtual,
+            lane: lane,
+          });
+        } else {
+          boias.push({
+            x: xPos,
+            y: random(-height * 0.6, -itemSize),
+
+            tipo: random(boiasAtuais),
+            lane: lane,
+          });
+        }
+      }
+
+      function sortearPremio(pontos) {
+        let chance = random(100);
+
+        if (pontos >= 300) {
+          if (chance < 70) return "20";
+          return "free";
+        } else if (pontos >= 200 && pontos < 300) {
+          if (chance < 50) return "20";
+          return "15";
+        } else if (pontos >= 50 && pontos < 200) {
+          if (chance < 70) return "10";
+          return "15";
+        }
+
+        return null;
+      }
+
+      function touchMoved() {
+        if (!jogoAtivo) return false;
+        if (isMobile) {
+          capivaraX = constrain(touches[0].x, 0, width);
+          if (!arrastando) {
+            capivaraAtual = capivaraStanding;
+            arrastando = true;
+          }
+        }
+        return false;
+      }
+
+      function mouseDragged() {
+        if (!jogoAtivo) return false;
+        if (!isMobile) {
+          capivaraX = constrain(mouseX, 0, width);
+          capivaraAtual = capivaraStanding;
+          arrastando = true;
+        }
+        return false;
+      }
+
+      function touchEnded() {
+        if (isMobile) {
+          capivaraAtual = capivara;
+          arrastando = false;
+        }
+      }
+
+      function mouseReleased() {
+        if (!isMobile) {
+          capivaraAtual = capivara;
+          arrastando = false;
+        }
+      }
+
+      function reiniciarJogo() {
+        velocidadeBonus = 0;
+        vidas = 3;
+        tempo = 30;
+        pontos = 0;
+        pedras = [];
+        boias = [];
+        modoAvancado = false;
+        marco150Ativado = false;
+        marco250Ativado = false;
+        marco350Ativado = false;
+        jogoAtivo = true;
+        premio = null;
+        ultimoSpawn = millis();
+      }
+      function touchStarted() {
+        userStartAudio();
+        if (musicaFundo && !musicaFundo.isPlaying()) {
+          musicaFundo.loop();
+        }
+
+        if ((vidas <= 0 || tempo <= 0) && tryAgainBtn) {
+          let mx = touches[0].x;
+          let my = touches[0].y;
+
+          if (
+            mx >= tryAgainBtn.x &&
+            mx <= tryAgainBtn.x + tryAgainBtn.size &&
+            my >= tryAgainBtn.y &&
+            my <= tryAgainBtn.y + tryAgainBtn.size
+          ) {
+            reiniciarJogo();
+            return false;
+          }
+        }
+
+        return false;
+      }
+
+      function mousePressed() {
+        userStartAudio();
+
+        if ((vidas <= 0 || tempo <= 0) && tryAgainBtn) {
+          let mx = mouseX;
+          let my = mouseY;
+
+          if (
+            mx >= tryAgainBtn.x &&
+            mx <= tryAgainBtn.x + tryAgainBtn.size &&
+            my >= tryAgainBtn.y &&
+            my <= tryAgainBtn.y + tryAgainBtn.size
+          ) {
+            reiniciarJogo();
+            return false;
+          }
+        }
+
+        return false;
+      }
+    </script>
+  </body>
+</html>
