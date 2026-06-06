@@ -1,0 +1,1643 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+      
+      <!-- Google Tag Manager -->
+    <script>
+      (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+      new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+      j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+      'https://www.googletagmanager.com/gtm.js?id=GTM-M24ZV9VV'+dl;f.parentNode.insertBefore(j,f);
+      })(window,document,'script','dataLayer','GTM-M24ZV9VV');
+    </script>
+    <!-- End Google Tag Manager -->
+      
+    <meta charset="UTF-8" />
+    <title>Aquagame</title>
+    <link
+      rel="icon"
+      type="image/png"
+      href="https://aquagame.aquaticaamericanpark.com.br/ganhe-desconto/assets/Icon.png"
+    />
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/addons/p5.sound.min.js"></script>
+
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        height: 100%;
+        width: 100%;
+      }
+
+      canvas {
+        display: block;
+      }
+
+      .toast {
+        visibility: hidden;
+        background-color: rgba(0, 0, 0, 0.85);
+        color: #fff;
+        text-align: center;
+        border-radius: 8px;
+
+        position: fixed;
+        left: 50%;
+        bottom: 5vh;
+        transform: translateX(-50%);
+
+        width: 85vw;
+        max-width: 420px;
+
+        padding: 2.2vh 4vw;
+
+        font-size: clamp(16px, 2.2vh, 22px);
+        font-weight: bold;
+        line-height: 1.4;
+
+        z-index: 9999;
+        transition: opacity 0.4s ease;
+        opacity: 0;
+      }
+
+      .toast.show {
+        visibility: visible;
+        opacity: 1;
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- Google Tag Manager (noscript) -->
+    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-M24ZV9VV"
+    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+      
+    <div id="toast" class="toast"></div>
+
+    <script>
+      let capivara;
+      let capivaraStanding;
+      let capivaraAtual;
+      let capivaraX;
+      let boias = [];
+      let pedras = [];
+      let fundo;
+      let fundoCancun;
+      let backgroundLoading;
+
+      let vidas = 3;
+      let tempo = 30;
+      let pontos = 0;
+      let ultimoSpawn = 0;
+      let intervaloSpawn = 0;
+
+      let pedraImg, boiaAzul, boiaConfete;
+      let gameOverImg, tryAgainIcon;
+      let isMobile = false;
+      let arrastando = false;
+      let capivaraSurfista;
+      let capivaraSurfistaPulando;
+      let velocidadeBonus = 0;
+      let velocidadeReal = 0;
+
+      let fundoBaleia, fundoMalibu;
+      let capivaraPai, capivaraPaiPulando;
+      let capivaraMae, capivaraMaePulando;
+      let modoAvancado = false;
+      let marco150Ativado = false;
+      let marco250Ativado = false;
+      let marco350Ativado = false;
+      let musicaFundo;
+      let lastBackPress = 0;
+      let jogoAtivo = true;
+      let carregandoImgs = [];
+      let indiceImagemCarregando = 0;
+      let tempoTrocaImagem = 0;
+      let tempoFimCarregamento = 0;
+      const TEMPO_MINIMO_CARREGAMENTO = 4000;
+      let ultimoTempoAtualizado = 0;
+      let carregamentoCompleto = false;
+      let tutorialAtivo = true;
+      let tutorialInicio = 0;
+      let tutorialEtapa = 0;
+      let tutorialPausado = false;
+      let tutorialPausaInicio = 0;
+      let tutorialItemDestacado = null;
+      const DELAY_POPUP_TUTORIAL = 200;
+      let premio = null;
+      let cupomImgs = {};
+      let margemTela = 40;
+      let wakeLock = null;
+      let itemSize = 0;
+      let tryAgainBtn = null;
+      let tutorialSkipBtn = null;
+      let confetesBrasil = [];
+      const totalLanes = 4;
+      let lanes = [];
+
+     let imagensParaCarregar = [
+        {
+          name: "fundo",
+          url: "./assets/bg-orlando.png",
+        },
+        {
+          name: "fundoCancun",
+          url: "./assets/bg-miami.png",
+        },
+        {
+          name: "capivara",
+          url: "./assets/aquapow-padrao-1.png",
+        },
+        {
+          name: "capivaraStanding",
+          url: "./assets/aquapow-padrao-2.png",
+        },
+        {
+          name: "capivaraSurfista",
+          url: "./assets/aquarao-padrao-1.png",
+        },
+        {
+          name: "capivaraSurfistaPulando",
+          url: "./assets/aquarao-padrao-2.png",
+        },
+        {
+          name: "pedraImg",
+          url: "./assets/gelo.png",
+        },
+        {
+          name: "boiaAzul",
+          url: "./assets/boia-azul.png",
+        },
+        {
+          name: "boiaConfete",
+          url: "./assets/confete.png",
+        },
+        {
+          name: "gameOverImg",
+          url: "./assets/game-over-2.png",
+        },
+        {
+          name: "tryAgainIcon",
+          url: "./assets/try-again.png",
+        },
+        {
+          name: "fundoBaleia",
+          url: "./assets/bg-hawaii.png",
+        },
+        {
+          name: "fundoMalibu",
+          url: "./assets/bg-malibu.png",
+        },
+        {
+          name: "capivaraPai",
+          url: "./assets/aqualeia-padrao-1.png",
+        },
+        {
+          name: "capivaraPaiPulando",
+          url: "./assets/aqualeia-padrao-2.png",
+        },
+        {
+          name: "capivaraMae",
+          url: "./assets/aquacapy-padrao-1.png",
+        },
+        {
+          name: "capivaraMaePulando",
+          url: "./assets/aquacapy-padrao-2.png",
+        },
+        {
+          name: "carregando1",
+          url: "./assets/carregando-padrao-1.png",
+        },
+        {
+          name: "carregando2",
+          url: "./assets/carregando-padrao-2.png",
+        },
+
+        {
+          name: "microfone",
+          url: "./assets/microfone.png",
+        },
+        {
+          name: "coco",
+          url: "./assets/coco.png",
+        },
+        {
+          name: "parasol",
+          url: "./assets/parasol.png",
+        },
+        {
+          name: "frio",
+          url: "./assets/frio.png",
+        },
+        {
+          name: "sorvete",
+          url: "./assets/sorvete.png",
+        },
+        {
+          name: "donuts",
+          url: "./assets/donuts.png",
+        },
+        {
+          name: "chuva",
+          url: "./assets/chuva.png",
+        },
+        {
+          name: "flor",
+          url: "./assets/flor.png",
+        },
+        {
+          name: "cupom10",
+          url: "./assets/cupom10.png",
+        },
+        {
+          name: "cupom15",
+          url: "./assets/cupom15.png",
+        },
+        {
+          name: "cupom20",
+          url: "./assets/cupom20.png",
+        },
+        {
+          name: "cupomFree",
+          url: "./assets/cupom100.png",
+        },
+      ];
+
+      let somParaCarregar = {
+        name: "musicaFundo",
+        url: "./assets/musica-aquafofos.mp3",
+      };
+
+      let imagensCarregadas = {};
+      let totalAssets = imagensParaCarregar.length + 1;
+      let assetsCarregados = 0;
+
+      let frases = [
+        "Chamando todos os aquafofos...",
+        "Passando protetor solar...",
+        "Ligando as ondas...",
+        "Ativando o modo Aquática Turbo...",
+        "Prontos para a diversão...",
+      ];
+      let fraseAtual = 0;
+      let tempoFrase = 0;
+
+      function carregarAssets() {
+        imagensParaCarregar.forEach((asset) => {
+          loadImage(
+            asset.url,
+            (img) => {
+              imagensCarregadas[asset.name] = img;
+              if (
+                asset.name === "carregando1" ||
+                asset.name === "carregando2"
+              ) {
+                carregandoImgs.push(img);
+              }
+              assetsCarregados++;
+              checarFimCarregamento();
+            },
+            (err) => {
+              console.error(`Erro carregando imagem ${asset.name}`);
+              assetsCarregados++;
+              checarFimCarregamento();
+            },
+          );
+        });
+
+       loadSound(
+  somParaCarregar.url,
+  (snd) => {
+    musicaFundo = snd;
+    assetsCarregados++;
+    checarFimCarregamento();
+  },
+        );
+      }
+
+      function checarFimCarregamento() {
+        if (assetsCarregados >= totalAssets && tempoFimCarregamento === 0) {
+          tempoFimCarregamento = millis();
+        }
+      }
+
+      function iniciarJogo() {
+        fundo = imagensCarregadas.fundo;
+        fundoCancun = imagensCarregadas.fundoCancun;
+        capivara = imagensCarregadas.capivara;
+        cupomImgs = {
+          10: imagensCarregadas.cupom10,
+          15: imagensCarregadas.cupom15,
+          20: imagensCarregadas.cupom20,
+          free: imagensCarregadas.cupomFree,
+        };
+        capivaraStanding = imagensCarregadas.capivaraStanding;
+        capivaraSurfista = imagensCarregadas.capivaraSurfista;
+        capivaraSurfistaPulando = imagensCarregadas.capivaraSurfistaPulando;
+        pedraImg = imagensCarregadas.pedraImg;
+        boiaAzul = imagensCarregadas.boiaAzul;
+        boiaConfete = imagensCarregadas.boiaConfete;
+        pedraChuva = imagensCarregadas.chuva;
+        pedraFrio = imagensCarregadas.frio;
+
+        boiaMicrofone = imagensCarregadas.microfone;
+        boiaCoco = imagensCarregadas.coco;
+        boiaParasol = imagensCarregadas.parasol;
+        boiaFrio = imagensCarregadas.frio;
+        boiaSorvete = imagensCarregadas.sorvete;
+        boiaDonuts = imagensCarregadas.donuts;
+        boiaFlor = imagensCarregadas.flor;
+
+        gameOverImg = imagensCarregadas.gameOverImg;
+        tryAgainIcon = imagensCarregadas.tryAgainIcon;
+        fundoBaleia = imagensCarregadas.fundoBaleia;
+        fundoMalibu = imagensCarregadas.fundoMalibu;
+        capivaraPai = imagensCarregadas.capivaraPai;
+        capivaraPaiPulando = imagensCarregadas.capivaraPaiPulando;
+        capivaraMae = imagensCarregadas.capivaraMae;
+        capivaraMaePulando = imagensCarregadas.capivaraMaePulando;
+        capivaraAtual = capivara;
+        loop();
+        //if (musicaFundo) {
+        //  musicaFundo.loop();
+        // }
+        if (isMobile) {
+          ativarWakeLock();
+        }
+        ultimoSpawn = millis();
+        tutorialInicio = millis();
+        tutorialEtapa = 0;
+        tutorialPausado = false;
+        tutorialPausaInicio = 0;
+        tutorialItemDestacado = null;
+      }
+
+      function preload() {
+        backgroundLoading = loadImage(
+          "https://aquagame.aquaticaamericanpark.com.br/ganhe-desconto/assets/bg-padrao.png",
+        );
+
+        let imagensLoading = [
+          {
+            name: "carregando1",
+            url: "./assets/carregando-padrao-1.png",
+          },
+          {
+            name: "carregando2",
+            url: "./assets/carregando-padrao-2.png",
+          },
+        ];
+
+        imagensLoading.forEach((img) => {
+          loadImage(img.url, (loadedImg) => {
+            carregandoImgs.push(loadedImg);
+          });
+        });
+      }
+
+      function setup() {
+        isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        isIphone = /iPhone|iPod/i.test(navigator.userAgent);
+
+        createCanvas(windowWidth, windowHeight);
+        if (isMobile) {
+          pixelDensity(1);
+        }
+        frameRate(60);
+
+        capivaraX = width / 2;
+        capivaraAtual = capivara;
+
+        carregarAssets();
+
+        let laneWidth = (width - margemTela * 2) / totalLanes;
+
+        for (let i = 0; i < totalLanes; i++) {
+          lanes.push(margemTela + i * laneWidth + laneWidth / 2 - itemSize / 2);
+        }
+
+        document.addEventListener("touchmove", (e) => e.preventDefault(), {
+          passive: false,
+        });
+
+        document.addEventListener("visibilitychange", () => {
+          if (document.hidden) {
+            if (musicaFundo && musicaFundo.isPlaying()) musicaFundo.pause();
+          } else {
+            if (musicaFundo && !musicaFundo.isPlaying()) musicaFundo.loop();
+            if (isMobile) ativarWakeLock();
+          }
+        });
+
+        window.onpopstate = function () {
+          showToast("Pressione novamente para sair");
+          history.pushState(null, null, location.href);
+        };
+        history.pushState(null, null, location.href);
+      }
+
+      function desenharTelaLoading() {
+        let imgAspect = backgroundLoading.width / backgroundLoading.height;
+        let canvasAspect = width / height;
+
+        let drawWidth, drawHeight;
+        let offsetX = 0;
+        let offsetY = 0;
+
+        if (canvasAspect > imgAspect) {
+          drawWidth = width;
+          drawHeight = width / imgAspect;
+          offsetY = (height - drawHeight) / 2;
+        } else {
+          drawHeight = height;
+          drawWidth = height * imgAspect;
+          offsetX = (width - drawWidth) / 2;
+        }
+
+        image(backgroundLoading, offsetX, offsetY, drawWidth, drawHeight);
+
+        noStroke();
+
+        tempoTrocaImagem++;
+        if (tempoTrocaImagem > 60) {
+          indiceImagemCarregando =
+            (indiceImagemCarregando + 1) % carregandoImgs.length;
+          tempoTrocaImagem = 0;
+        }
+
+        if (
+          carregandoImgs.length > 0 &&
+          carregandoImgs[indiceImagemCarregando]
+        ) {
+          let img = carregandoImgs[indiceImagemCarregando];
+
+          let imgW = isMobile ? width * 0.6 : width * 0.3;
+          let imgH = imgW * (img.height / img.width);
+
+          let barraWidth = width * 0.6;
+          let barraHeight = 20;
+
+          if (!isMobile) {
+            let textoAltura = 30;
+            let espacamento = 20;
+
+            let alturaBloco =
+              imgH + espacamento + barraHeight + espacamento + textoAltura;
+
+            let yBase = (height - alturaBloco) / 2;
+
+            let yImg = yBase;
+            let yBar = yImg + imgH + espacamento;
+            let yTexto = yBar + barraHeight + espacamento;
+
+            image(img, width / 2 - imgW / 2, yImg, imgW, imgH);
+
+            fill("#fff");
+            rect((width - barraWidth) / 2, yBar, barraWidth, barraHeight, 10);
+
+            fill("#FF3FA4");
+            let progresso = assetsCarregados / totalAssets;
+            rect(
+              (width - barraWidth) / 2,
+              yBar,
+              barraWidth * progresso,
+              barraHeight,
+              10,
+            );
+
+            tempoFrase++;
+            if (tempoFrase > 120) {
+              fraseAtual = (fraseAtual + 1) % frases.length;
+              tempoFrase = 0;
+            }
+
+            let alpha = map(tempoFrase, 0, 120, 0, 255);
+            if (tempoFrase > 60) alpha = map(tempoFrase, 60, 120, 255, 0);
+
+            fill(255, alpha);
+            textAlign(CENTER, CENTER);
+            textSize(20);
+            text(frases[fraseAtual], width / 2, yTexto + textoAltura / 2);
+          }
+
+          if (isMobile) {
+            let espacamento = 35;
+            let espacamentoTexto = 55;
+            let barraMobileW = width * 0.85;
+            let barraMobileH = 34;
+            let textoAltura = width * 0.06;
+
+            let blocoAltura =
+              imgH +
+              espacamento +
+              barraMobileH +
+              espacamentoTexto +
+              textoAltura;
+
+            let yInicio = (height - blocoAltura) / 2;
+
+            let yImg = yInicio;
+            let yBar = yImg + imgH + espacamento;
+            let yTexto = yBar + barraMobileH + espacamentoTexto;
+
+            image(img, width / 2 - imgW / 2, yImg, imgW, imgH);
+
+            let xBar = (width - barraMobileW) / 2;
+
+            fill("#fff");
+            rect(xBar, yBar, barraMobileW, barraMobileH, 12);
+
+            fill("#1E88E5");
+            let progresso = assetsCarregados / totalAssets;
+            rect(xBar, yBar, barraMobileW * progresso, barraMobileH, 12);
+
+            tempoFrase++;
+            if (tempoFrase > 120) {
+              fraseAtual = (fraseAtual + 1) % frases.length;
+              tempoFrase = 0;
+            }
+
+            let alpha = map(tempoFrase, 0, 120, 0, 255);
+            if (tempoFrase > 60) alpha = map(tempoFrase, 60, 120, 255, 0);
+
+            fill(255, alpha);
+            textAlign(CENTER, CENTER);
+            textSize(width * 0.06);
+            text(frases[fraseAtual], width / 2, yTexto);
+          }
+        }
+      }
+
+      function showToast(message, duration = 3000) {
+        const toast = document.getElementById("toast");
+        toast.textContent = message;
+        toast.classList.add("show");
+
+        setTimeout(() => {
+          toast.classList.remove("show");
+        }, duration);
+      }
+
+
+      function desenharOverlayTutorial() {
+        if (!tutorialAtivo || !tutorialPausado) return;
+
+        let alvo = pegarAlvoTutorial();
+        let mensagem = pegarMensagemTutorial();
+        let raio = alvo.raio;
+        let etapaFinal = tutorialEtapa === 3;
+        let mostrarCirculo = !etapaFinal && tutorialEtapa !== 2;
+
+        drawingContext.save();
+        drawingContext.beginPath();
+        drawingContext.rect(0, 0, width, height);
+        if (mostrarCirculo) {
+          drawingContext.arc(alvo.x, alvo.y, raio, 0, Math.PI * 2, true);
+        }
+        drawingContext.fillStyle = "rgba(0, 0, 0, 0.58)";
+        drawingContext.fill("evenodd");
+        drawingContext.restore();
+
+        if (mostrarCirculo) {
+          drawingContext.save();
+          drawingContext.shadowColor = "rgba(30, 136, 229, 0.7)";
+          drawingContext.shadowBlur = 18;
+          noFill();
+          stroke("#1E88E5");
+          strokeWeight(4);
+          ellipse(alvo.x, alvo.y, raio * 2, raio * 2);
+          drawingContext.restore();
+
+          noFill();
+          stroke(255, 235);
+          strokeWeight(2);
+          ellipse(alvo.x, alvo.y, raio * 2.18, raio * 2.18);
+          noStroke();
+        }
+
+        let cardW = isMobile ? width * 0.9 : min(width * 0.42, 520);
+        let cardPad = isMobile ? 30 : 22;
+        let cardGap = isMobile ? 18 : 14;
+        let titleBodyGap = isMobile ? cardGap : 2;
+        let btnGap = isMobile ? 44 : 36;
+        let pillPadX = isMobile ? 22 : 20;
+        let pillH = isMobile ? 48 : 30;
+        let titleH = isMobile ? 86 : 36;
+        let bodyH = isMobile ? 120 : 60;
+        let btnPadX = isMobile ? 58 : 34;
+        let btnH = isMobile ? 118 : 46;
+        let skipBtnGap = isMobile ? 18 : 12;
+        let skipBtnH = btnH;
+        let mostrarBotaoPular = !etapaFinal;
+        let buttonsBlockH =
+          isMobile && mostrarBotaoPular
+            ? btnH + skipBtnGap + skipBtnH
+            : btnH;
+        let cardRadius = isMobile ? 28 : 18;
+        let cardH =
+          cardPad * 2 +
+          pillH +
+          cardGap +
+          titleH +
+          titleBodyGap +
+          bodyH +
+          btnGap +
+          buttonsBlockH;
+        let cardX = (width - cardW) / 2;
+        let cardY;
+
+        if (etapaFinal || tutorialEtapa === 2) {
+          cardY = (height - cardH) / 2;
+        } else if (isMobile) {
+          cardY = min(height - cardH - 34, alvo.y + raio + 28);
+        } else if (alvo.y < height * 0.54) {
+          cardY = min(height - cardH - 28, alvo.y + raio + 34);
+        } else {
+          cardY = max(28, alvo.y - raio - cardH - 34);
+        }
+
+        drawingContext.save();
+        drawingContext.shadowColor = "rgba(0, 0, 0, 0.28)";
+        drawingContext.shadowBlur = 26;
+        drawingContext.shadowOffsetY = 10;
+        fill(255);
+        rect(cardX, cardY, cardW, cardH, cardRadius);
+        drawingContext.restore();
+
+        let stepText =
+          tutorialEtapa < 3 ? `PASSO ${tutorialEtapa + 1} DE 3` : "PRONTO";
+        textSize(isMobile ? min(width * 0.07, 30) : 12);
+        let pillW = textWidth(stepText) + pillPadX * 2;
+        let pillX = cardX + (cardW - pillW) / 2;
+        let pillY = cardY + cardPad;
+
+        fill("#E8F3FF");
+        rect(pillX, pillY, pillW, pillH, 999);
+
+        fill("#0B3D91");
+        textAlign(CENTER, CENTER);
+        textStyle(BOLD);
+        text(stepText, pillX + pillW / 2, pillY + pillH / 2);
+
+        fill("#0B3D91");
+        textAlign(CENTER, CENTER);
+        textStyle(BOLD);
+        textSize(isMobile ? min(width * 0.12, 56) : 25);
+        let titleY = pillY + pillH + cardGap;
+        if (isMobile) {
+          text(mensagem.titulo, cardX + cardW / 2, titleY + titleH / 2);
+        } else {
+          text(mensagem.titulo, cardX + cardPad, titleY, cardW - cardPad * 2, titleH);
+        }
+
+        fill("#1D2B3A");
+        textStyle(NORMAL);
+        textSize(isMobile ? min(width * 0.088, 38) : 17);
+        let bodyY = titleY + titleH + titleBodyGap;
+        textAlign(CENTER, isMobile ? TOP : CENTER);
+        text(
+          mensagem.texto,
+          cardX + cardPad,
+          bodyY,
+          cardW - cardPad * 2,
+          bodyH,
+        );
+
+        let textoBotao =
+          tutorialEtapa === 3
+            ? "Começar partida"
+            : isMobile
+              ? "Toque para continuar"
+              : "Clique para continuar";
+        let btnTextSize = isMobile ? min(width * 0.105, 44) : 16;
+        textSize(btnTextSize);
+        let rowGap = isMobile ? 0 : 14;
+        let btnW = isMobile
+          ? cardW - cardPad * 2
+          : (cardW - cardPad * 2 - rowGap) / 2;
+        if (isMobile) {
+          while (textWidth(textoBotao) > btnW - btnPadX * 2 && btnTextSize > 34) {
+            btnTextSize -= 1;
+            textSize(btnTextSize);
+          }
+        }
+        let btnX = isMobile
+          ? cardX + (cardW - btnW) / 2
+          : mostrarBotaoPular
+            ? cardX + cardPad + btnW + rowGap
+            : cardX + (cardW - btnW) / 2;
+        let btnY = cardY + cardH - cardPad - btnH;
+        let skipBtnX = isMobile ? btnX : cardX + cardPad;
+        let skipBtnY = isMobile ? btnY - skipBtnGap - skipBtnH : btnY;
+
+        if (mostrarBotaoPular) {
+          noFill();
+          stroke("#1E88E5");
+          strokeWeight(2);
+          rect(skipBtnX, skipBtnY, btnW, skipBtnH, 999);
+          noStroke();
+
+          fill("#1E88E5");
+          textAlign(CENTER, CENTER);
+          textStyle(BOLD);
+          textSize(btnTextSize);
+          text("Pular tutorial", skipBtnX + btnW / 2, skipBtnY + skipBtnH / 2);
+        }
+
+        fill("#1E88E5");
+        rect(btnX, btnY, btnW, btnH, 999);
+
+        fill(255);
+        textAlign(CENTER, CENTER);
+        textStyle(BOLD);
+        textSize(btnTextSize);
+        text(
+          textoBotao,
+          btnX + btnW / 2,
+          btnY + btnH / 2,
+        );
+
+        tutorialSkipBtn = mostrarBotaoPular
+          ? {
+              x: skipBtnX,
+              y: skipBtnY,
+              w: btnW,
+              h: skipBtnH,
+            }
+          : null;
+      }
+
+      function pegarMensagemTutorial() {
+        if (tutorialEtapa === 0) {
+          return {
+            titulo: "Atenção aos obstáculos",
+            texto: "Frio e chuva fazem você perder vidas. Desvie deles para continuar na partida.",
+          };
+        }
+
+        if (tutorialEtapa === 1) {
+          return {
+            titulo: "Pegue os itens da especiais",
+            texto: "Recolha os itens especiais para conseguir pontos e avançar de nível.",
+          };
+        }
+
+        if (tutorialEtapa === 2) {
+          return {
+            titulo: "Pontuação importa",
+            texto: "Quanto mais pontos você fizer, mais difícil fica a partida e melhores serão os prêmios.",
+          };
+        }
+
+        return {
+          titulo: "Bom jogo!",
+          texto: "Agora é com você. Pegue os itens, desvie dos obstáculos e faça muitos pontos.",
+        };
+      }
+
+      function pegarAlvoTutorial() {
+        if (tutorialEtapa <= 1 && tutorialItemDestacado) {
+          return {
+            x: tutorialItemDestacado.x + itemSize / 2,
+            y: tutorialItemDestacado.y + itemSize / 2,
+            raio: max(itemSize * 0.72, 44),
+          };
+        }
+
+        if (tutorialEtapa === 2) {
+          return {
+            x: isMobile ? 105 : 120,
+            y: 20 + height * 0.03 * 1.2 * 2 + height * 0.018,
+            raio: isMobile ? 86 : 96,
+          };
+        }
+
+        return {
+          x: width / 2,
+          y: height / 2,
+          raio: isMobile ? min(width * 0.24, 100) : 110,
+        };
+      }
+
+      function atualizarTutorial() {
+        if (!tutorialAtivo || tutorialPausado) return;
+
+        if (tutorialEtapa === 0 && !tutorialItemDestacado) {
+          tutorialItemDestacado = gerarItemTutorial(pedraFrio || pedraChuva, 1, true);
+        }
+
+        if (tutorialEtapa === 1 && !tutorialItemDestacado) {
+          tutorialItemDestacado = gerarItemTutorial(
+            boiaFlor || boiaAzul || boiaConfete,
+            2,
+          );
+        }
+
+        if (tutorialEtapa <= 1 && tutorialItemDestacado) {
+          let pontoPausaTutorial = isMobile ? height * 0.43 : height * 0.32;
+          if (tutorialItemDestacado.y >= pontoPausaTutorial) {
+            tutorialPausado = true;
+            tutorialPausaInicio = millis();
+          }
+          return;
+        }
+
+        tutorialPausado = true;
+        tutorialPausaInicio = millis();
+      }
+
+      function encerrarTutorial() {
+        tutorialAtivo = false;
+        tutorialPausado = false;
+        tutorialItemDestacado = null;
+        tutorialSkipBtn = null;
+        vidas = 3;
+        tempo = 30;
+        pontos = 0;
+        pedras = [];
+        boias = [];
+        ultimoSpawn = millis();
+        ultimoTempoAtualizado = millis();
+        showToast("Valendo!", 1200);
+      }
+
+      function clicarBotaoPularTutorial(mx, my) {
+        if (!tutorialAtivo || !tutorialPausado || !tutorialSkipBtn) return false;
+
+        const dentroBotao =
+          mx >= tutorialSkipBtn.x &&
+          mx <= tutorialSkipBtn.x + tutorialSkipBtn.w &&
+          my >= tutorialSkipBtn.y &&
+          my <= tutorialSkipBtn.y + tutorialSkipBtn.h;
+
+        if (!dentroBotao) return false;
+
+        if (millis() - tutorialPausaInicio < DELAY_POPUP_TUTORIAL) {
+          return true;
+        }
+
+        encerrarTutorial();
+        return true;
+      }
+
+      function avancarTutorial() {
+        if (!tutorialAtivo || !tutorialPausado) return false;
+
+        if (millis() - tutorialPausaInicio < DELAY_POPUP_TUTORIAL) {
+          return true;
+        }
+
+        if (tutorialEtapa === 0) {
+          pedras = [];
+          tutorialEtapa = 1;
+          tutorialPausado = false;
+          tutorialItemDestacado = null;
+          return true;
+        }
+
+        if (tutorialEtapa === 1) {
+          boias = [];
+          tutorialEtapa = 2;
+          tutorialItemDestacado = null;
+          return true;
+        }
+
+        if (tutorialEtapa === 2) {
+          tutorialEtapa = 3;
+          tutorialPausaInicio = millis();
+          return true;
+        }
+
+        encerrarTutorial();
+        return true;
+      }
+
+      function gerarItemTutorial(tipo, lane, obstaculo = false) {
+        let xPos = lanes[lane] || width / 2;
+        let item = {
+          x: xPos,
+          y: -itemSize * 1.5,
+          tipo: tipo,
+          lane: lane,
+        };
+
+        if (obstaculo) pedras.push(item);
+        else boias.push(item);
+
+        return item;
+      }
+
+      async function ativarWakeLock() {
+        try {
+          if ("wakeLock" in navigator) {
+            wakeLock = await navigator.wakeLock.request("screen");
+            console.log("Wake Lock ativado");
+
+            wakeLock.addEventListener("release", () => {
+              console.log("Wake Lock liberado");
+            });
+          }
+        } catch (err) {
+          console.warn("Wake Lock falhou:", err);
+        }
+      }
+
+      window.onpopstate = function (event) {
+        showToast("Pressione novamente para sair");
+        history.pushState(null, null, location.href);
+      };
+
+      history.pushState(null, null, location.href);
+
+      function windowResized() {
+        resizeCanvas(windowWidth, windowHeight);
+        capivaraX = constrain(capivaraX, 0, width);
+      }
+
+      function inicializarConfetesBrasil() {
+        const cores = ["#0065BA", "#30D6D6", "#F58410"];
+        const total = isMobile ? 42 : 70;
+        confetesBrasil = [];
+
+        for (let i = 0; i < total; i++) {
+          confetesBrasil.push({
+            x: random(width),
+            y: random(-height, height),
+            w: isMobile ? random(24, 42) : random(6, 14),
+            h: isMobile ? random(40, 70) : random(10, 22),
+            speed: random(60, 150),
+            drift: random(-35, 35),
+            rot: random(TWO_PI),
+            rotSpeed: random(-2.5, 2.5),
+            color: random(cores),
+          });
+        }
+      }
+
+      function desenharConfetesBrasil(dt) {
+        if (confetesBrasil.length === 0) {
+          inicializarConfetesBrasil();
+        }
+
+        noStroke();
+        for (let confete of confetesBrasil) {
+          confete.y += confete.speed * dt;
+          confete.x += confete.drift * dt;
+          confete.rot += confete.rotSpeed * dt;
+
+          if (confete.y > height + confete.h) {
+            confete.y = random(-120, -20);
+            confete.x = random(width);
+          }
+
+          if (confete.x < -30) confete.x = width + 30;
+          if (confete.x > width + 30) confete.x = -30;
+
+          push();
+          translate(confete.x, confete.y);
+          rotate(confete.rot);
+          fill(confete.color);
+          rect(-confete.w / 2, -confete.h / 2, confete.w, confete.h, 2);
+          pop();
+        }
+      }
+
+      function desenharCardFinal(cardX, cardY, cardW, cardH, cardRadius) {
+        drawingContext.save();
+        drawingContext.shadowColor = "rgba(0, 0, 0, 0.28)";
+        drawingContext.shadowBlur = 26;
+        drawingContext.shadowOffsetY = 10;
+        fill(255);
+        noStroke();
+        rect(cardX, cardY, cardW, cardH, cardRadius);
+        drawingContext.restore();
+      }
+
+      function desenharPillFinal(texto, x, y, padX, h) {
+        textSize(isMobile ? min(width * 0.07, 30) : 12);
+        textStyle(BOLD);
+        let pillW = textWidth(texto) + padX * 2;
+        let pillX = x - pillW / 2;
+
+        fill("#E8F3FF");
+        noStroke();
+        rect(pillX, y, pillW, h, 999);
+
+        fill("#0B3D91");
+        textAlign(CENTER, CENTER);
+        text(texto, x, y + h / 2);
+      }
+
+      function desenharBotaoFinal(texto, btnX, btnY, btnW, btnH, fontSize) {
+        fill("#1E88E5");
+        noStroke();
+        rect(btnX, btnY, btnW, btnH, 999);
+
+        fill(255);
+        textAlign(CENTER, CENTER);
+        textStyle(BOLD);
+        textSize(fontSize);
+        text(texto, btnX + btnW / 2, btnY + btnH / 2);
+
+        tryAgainBtn = {
+          x: btnX,
+          y: btnY,
+          w: btnW,
+          h: btnH,
+          size: max(btnW, btnH),
+        };
+      }
+
+      function desenharTelaVitoria() {
+        const cupom = cupomImgs[premio];
+        const cardW = isMobile ? width * 0.9 : min(width * 0.46, 560);
+        const cardPad = isMobile ? 26 : 24;
+        const pillH = isMobile ? 48 : 30;
+        const titleH = isMobile ? 86 : 40;
+        const bodyH = isMobile ? 120 : 44;
+        const gap = isMobile ? 18 : 14;
+        const btnGap = isMobile ? 28 : 30;
+        const btnH = isMobile ? 118 : 46;
+        const cardRadius = isMobile ? 28 : 18;
+        const cupomMaxW = cardW - cardPad * 2;
+        const cupomMaxH = isMobile ? height * 0.32 : height * 0.34;
+        const cupomAspect = cupom.height / cupom.width;
+        let cupomW = cupomMaxW;
+        let cupomH = cupomW * cupomAspect;
+
+        if (cupomH > cupomMaxH) {
+          cupomH = cupomMaxH;
+          cupomW = cupomH / cupomAspect;
+        }
+
+        const cardH =
+          cardPad * 2 +
+          pillH +
+          gap +
+          titleH +
+          bodyH +
+          gap +
+          cupomH +
+          btnGap +
+          btnH;
+        const cardX = (width - cardW) / 2;
+        const cardY = (height - cardH) / 2;
+
+        desenharCardFinal(cardX, cardY, cardW, cardH, cardRadius);
+        desenharPillFinal(
+          "PRÊMIO DESBLOQUEADO",
+          cardX + cardW / 2,
+          cardY + cardPad,
+          isMobile ? 20 : 18,
+          pillH,
+        );
+
+        let titleY = cardY + cardPad + pillH + gap;
+        fill("#0B3D91");
+        textAlign(CENTER, CENTER);
+        textStyle(BOLD);
+        textSize(isMobile ? min(width * 0.12, 56) : 30);
+        text("Você ganhou!", cardX + cardW / 2, titleY + titleH / 2);
+
+        let bodyY = titleY + titleH;
+        fill("#1D2B3A");
+        textStyle(NORMAL);
+        textSize(isMobile ? min(width * 0.088, 38) : 17);
+        text(
+          `Sua pontuação foi ${pontos}. Aproveite o cupom abaixo.`,
+          cardX + cardPad,
+          bodyY,
+          cardW - cardPad * 2,
+          bodyH,
+        );
+
+        let cupomY = bodyY + bodyH + gap;
+        image(cupom, cardX + cardW / 2 - cupomW / 2, cupomY, cupomW, cupomH);
+
+        let btnW = isMobile ? cardW - cardPad * 2 : min(cardW - cardPad * 2, 250);
+        let btnX = cardX + (cardW - btnW) / 2;
+        let btnY = cupomY + cupomH + btnGap;
+        desenharBotaoFinal(
+          "Tentar novamente",
+          btnX,
+          btnY,
+          btnW,
+          btnH,
+          isMobile ? min(width * 0.105, 44) : 16,
+        );
+      }
+
+      function desenharTelaGameOver() {
+        const cardW = isMobile ? width * 0.9 : min(width * 0.42, 520);
+        const cardPad = isMobile ? 28 : 24;
+        const pillH = isMobile ? 48 : 30;
+        const titleH = isMobile ? 86 : 40;
+        const bodyH = isMobile ? 120 : 56;
+        const gap = isMobile ? 18 : 14;
+        const btnGap = isMobile ? 32 : 30;
+        const btnH = isMobile ? 118 : 46;
+        const cardRadius = isMobile ? 28 : 18;
+        const imgMaxW = cardW - cardPad * 2;
+        const imgAspect = gameOverImg.height / gameOverImg.width;
+        let imgW = imgMaxW;
+        let imgH = imgW * imgAspect;
+
+        const cardH =
+          cardPad * 2 +
+          pillH +
+          gap +
+          imgH +
+          gap +
+          titleH +
+          bodyH +
+          btnGap +
+          btnH;
+        const cardX = (width - cardW) / 2;
+        const cardY = (height - cardH) / 2;
+
+        desenharCardFinal(cardX, cardY, cardW, cardH, cardRadius);
+        desenharPillFinal(
+          "FIM DE JOGO",
+          cardX + cardW / 2,
+          cardY + cardPad,
+          isMobile ? 20 : 18,
+          pillH,
+        );
+
+        let imgY = cardY + cardPad + pillH + gap;
+        image(gameOverImg, cardX + cardW / 2 - imgW / 2, imgY, imgW, imgH);
+
+        let titleY = imgY + imgH + gap;
+        fill("#0B3D91");
+        textAlign(CENTER, CENTER);
+        textStyle(BOLD);
+        textSize(isMobile ? min(width * 0.12, 56) : 28);
+        text("Quase lá!", cardX + cardW / 2, titleY + titleH / 2);
+
+        let bodyY = titleY + titleH;
+        fill("#1D2B3A");
+        textStyle(NORMAL);
+        textSize(isMobile ? min(width * 0.088, 38) : 17);
+        text(
+          `Você fez ${pontos} pontos. Tente novamente para conseguir um prêmio.`,
+          cardX + cardPad,
+          bodyY,
+          cardW - cardPad * 2,
+          bodyH,
+        );
+
+        let btnW = isMobile ? cardW - cardPad * 2 : min(cardW - cardPad * 2, 250);
+        let btnX = cardX + (cardW - btnW) / 2;
+        let btnY = bodyY + bodyH + btnGap;
+        desenharBotaoFinal(
+          "Tentar novamente",
+          btnX,
+          btnY,
+          btnW,
+          btnH,
+          isMobile ? min(width * 0.105, 44) : 16,
+        );
+      }
+
+      function draw() {
+        let dt = deltaTime / 1000;
+        if (isMobile) {
+          dt *= 2;
+        }
+        dt = min(dt, 0.05);
+
+        if (assetsCarregados < totalAssets) {
+          desenharTelaLoading();
+          return;
+        }
+
+        if (!carregamentoCompleto) {
+          if (millis() - tempoFimCarregamento >= TEMPO_MINIMO_CARREGAMENTO) {
+            console.log("Iniciando jogo...");
+            carregamentoCompleto = true;
+            iniciarJogo();
+            loop();
+          } else {
+            desenharTelaLoading();
+            return;
+          }
+        }
+
+        background(255);
+        let imgAspect = fundo.width / fundo.height;
+        let canvasAspect = width / height;
+        let drawWidth,
+          drawHeight,
+          offsetX = 0,
+          offsetY = 0;
+        if (canvasAspect > imgAspect) {
+          drawWidth = width;
+          drawHeight = width / imgAspect;
+          offsetY = (height - drawHeight) / 2;
+        } else {
+          drawHeight = height;
+          drawWidth = height * imgAspect;
+          offsetX = (width - drawWidth) / 2;
+        }
+        let fundoAtual = fundo;
+        if (pontos >= 300) fundoAtual = fundoMalibu;
+        else if (pontos >= 200) fundoAtual = fundoBaleia;
+        else if (pontos >= 100) fundoAtual = fundoCancun;
+
+        image(fundoAtual, offsetX, offsetY, drawWidth, drawHeight);
+
+        let pontosParaVelocidade = Math.min(pontos, 320);
+        velocidadeBonus = jogoAtivo
+          ? Math.floor(pontosParaVelocidade / 80)
+          : 0;
+
+        if (!marco150Ativado && pontos >= 100) {
+          tempo = 20;
+          vidas = 3;
+          marco150Ativado = true;
+          modoAvancado = true;
+        }
+        if (!marco250Ativado && pontos >= 200) {
+          tempo = 10;
+          vidas = 3;
+          marco250Ativado = true;
+        }
+        if (!marco350Ativado && pontos >= 300) {
+          tempo = 7;
+          vidas = 3;
+          marco350Ativado = true;
+        }
+
+        let escalaCapivara = height * 0.16;
+        let escalaItens = height * 0.12;
+        itemSize = escalaItens * 0.6;
+
+        atualizarTutorial();
+
+        if (!tutorialAtivo && jogoAtivo && millis() - ultimoTempoAtualizado >= 1000) {
+          if (tempo > 0 && vidas > 0) {
+            tempo--;
+            ultimoTempoAtualizado = millis();
+          }
+        }
+
+        let imagemCapivaraFinal;
+        if (pontos >= 300)
+          imagemCapivaraFinal = arrastando ? capivaraMaePulando : capivaraMae;
+        else if (pontos >= 200)
+          imagemCapivaraFinal = arrastando ? capivaraPaiPulando : capivaraPai;
+        else if (modoAvancado)
+          imagemCapivaraFinal = arrastando
+            ? capivaraSurfistaPulando
+            : capivaraSurfista;
+        else imagemCapivaraFinal = capivaraAtual;
+
+        let larguraCapivara = escalaCapivara;
+        let alturaCapivara = escalaCapivara;
+
+        if (modoAvancado && pontos < 200) {
+          larguraCapivara = escalaCapivara * 1.18;
+          alturaCapivara = escalaCapivara * 1.18;
+        }
+
+        image(
+          imagemCapivaraFinal,
+          capivaraX - larguraCapivara / 2,
+          height - alturaCapivara - 20,
+          larguraCapivara,
+          alturaCapivara,
+        );
+
+        if (!isMobile) {
+          if (keyIsDown(LEFT_ARROW)) capivaraX -= 5;
+          if (keyIsDown(RIGHT_ARROW)) capivaraX += 5;
+        }
+        capivaraX = constrain(capivaraX, 0, width);
+
+        let agora = millis();
+
+        let intervaloBase = tutorialAtivo ? 999999 : isMobile ? 950 : 700;
+        let aumentoFrequencia = 1 + Math.floor(pontos / 80) * 0.25;
+        intervaloSpawn = max(
+          intervaloBase / aumentoFrequencia,
+          isMobile ? 650 : 350,
+        );
+        if (jogoAtivo && agora - ultimoSpawn > intervaloSpawn) {
+          let quantidade = 1;
+
+          if (pontos >= 300) {
+            quantidade = 2;
+          }
+
+          for (let i = 0; i < quantidade; i++) {
+            gerarItem();
+          }
+
+          let maxItens = isMobile ? 3 : 4;
+          if (pedras.length + boias.length > maxItens * 5) {
+          }
+
+          ultimoSpawn = agora;
+        }
+
+        let baseVelocidade = 480;
+
+        let multiplicadorPorNivel = 0.22;
+
+        velocidadeReal =
+          baseVelocidade * (1 + multiplicadorPorNivel * velocidadeBonus);
+
+        for (let i = pedras.length - 1; i >= 0; i--) {
+          let p = pedras[i];
+
+          image(p.tipo, p.x, p.y, itemSize, itemSize);
+
+          if (!tutorialPausado) {
+            p.y += velocidadeReal * dt;
+          }
+
+          let distancia = dist(
+            p.x + itemSize / 2,
+            p.y + itemSize / 2,
+            capivaraX,
+            height - itemSize / 2 - 20,
+          );
+
+          if (jogoAtivo && distancia < itemSize) {
+            if (tutorialAtivo) vidas = max(1, vidas - 1);
+            else vidas--;
+            pedras.splice(i, 1);
+          } else if (p.y > height) {
+            pedras.splice(i, 1);
+          }
+        }
+
+        for (let i = boias.length - 1; i >= 0; i--) {
+          let b = boias[i];
+          image(b.tipo, b.x, b.y, itemSize, itemSize);
+
+          if (jogoAtivo && !tutorialPausado) {
+            b.y += velocidadeReal * dt;
+          }
+
+          if (
+            dist(b.x, b.y, capivaraX, height - itemSize / 2 - 20) < itemSize
+          ) {
+            if (!jogoAtivo) continue;
+
+            tempo += 2;
+            pontos += 5;
+            boias.splice(i, 1);
+          } else if (b.y > height) {
+            boias.splice(i, 1);
+          }
+        }
+
+        if (vidas > 0 && tempo > 0) {
+          let textSizeVal = height * 0.03;
+          let lineHeight = textSizeVal * 1.2;
+          fill(255);
+          stroke(0, 128);
+          strokeWeight(1.4);
+          textSize(textSizeVal);
+          textAlign(LEFT, TOP);
+          textStyle(BOLD);
+          text(`Tempo: ${tempo}`, 20, 20);
+          text(`Vidas: ${vidas}`, 20, 20 + lineHeight);
+          text(`Pontuação: ${pontos}`, 20, 20 + lineHeight * 2);
+          noStroke();
+        }
+
+        desenharOverlayTutorial();
+
+        if (!tutorialAtivo && (vidas <= 0 || tempo <= 0)) {
+          jogoAtivo = false;
+          fill(0, 0, 0, 102);
+          rect(0, 0, width, height);
+          if (typeof premio === "undefined") premio = null;
+          if (premio === null) {
+            premio = sortearPremio(pontos);
+          }
+          const temPremio = premio !== null && cupomImgs[premio];
+          if (temPremio) {
+            desenharConfetesBrasil(dt);
+            desenharTelaVitoria();
+          } else {
+            desenharTelaGameOver();
+          }
+        }
+      }
+
+      function pegarLaneLivre() {
+        let ocupadas = [];
+
+        let todos = pedras.concat(boias);
+
+        for (let item of todos) {
+          if (item.y < itemSize * 2) {
+            ocupadas.push(item.lane);
+          }
+        }
+
+        let livres = lanes
+          .map((_, i) => i)
+          .filter((i) => !ocupadas.includes(i));
+
+        if (livres.length === 0) return floor(random(totalLanes));
+
+        return random(livres);
+      }
+
+      function gerarItem() {
+        let pedraAtual;
+        let boiasAtuais = [];
+
+        if (pontos >= 300) {
+          pedraAtual = pedraChuva;
+          boiasAtuais = [boiaMicrofone, boiaConfete];
+        } else if (pontos >= 200) {
+          pedraAtual = pedraFrio;
+          boiasAtuais = [boiaDonuts, boiaAzul];
+        } else if (pontos >= 100) {
+          pedraAtual = pedraChuva;
+          boiasAtuais = [boiaParasol, boiaCoco];
+        } else {
+          pedraAtual = pedraFrio;
+          boiasAtuais = [boiaFlor, boiaSorvete];
+        }
+
+        let lane = pegarLaneLivre();
+        let xPos = lanes[lane];
+
+        if (random() < 0.45) {
+          pedras.push({
+            x: xPos,
+            y: random(-height * 0.6, -itemSize),
+
+            tipo: pedraAtual,
+            lane: lane,
+          });
+        } else {
+          boias.push({
+            x: xPos,
+            y: random(-height * 0.6, -itemSize),
+
+            tipo: random(boiasAtuais),
+            lane: lane,
+          });
+        }
+      }
+
+      function sortearPremio(pontos) {
+        let chance = random(100);
+
+        if (pontos >= 300) {
+          if (chance < 70) return "20";
+          return "free";
+        } else if (pontos >= 200 && pontos < 300) {
+          if (chance < 50) return "20";
+          return "15";
+        } else if (pontos >= 50 && pontos < 200) {
+          if (chance < 70) return "10";
+          return "15";
+        }
+
+        return null;
+      }
+
+      function touchMoved() {
+        if (!jogoAtivo) return false;
+        if (isMobile) {
+          capivaraX = constrain(touches[0].x, 0, width);
+          if (!arrastando) {
+            capivaraAtual = capivaraStanding;
+            arrastando = true;
+          }
+        }
+        return false;
+      }
+
+      function mouseDragged() {
+        if (!jogoAtivo) return false;
+        if (!isMobile) {
+          capivaraX = constrain(mouseX, 0, width);
+          capivaraAtual = capivaraStanding;
+          arrastando = true;
+        }
+        return false;
+      }
+
+      function touchEnded() {
+        if (isMobile) {
+          capivaraAtual = capivara;
+          arrastando = false;
+        }
+      }
+
+      function mouseReleased() {
+        if (!isMobile) {
+          capivaraAtual = capivara;
+          arrastando = false;
+        }
+      }
+
+      function reiniciarJogo() {
+        velocidadeBonus = 0;
+        vidas = 3;
+        tempo = 30;
+        pontos = 0;
+        pedras = [];
+        boias = [];
+        modoAvancado = false;
+        marco150Ativado = false;
+        marco250Ativado = false;
+        marco350Ativado = false;
+        jogoAtivo = true;
+        premio = null;
+        confetesBrasil = [];
+        ultimoSpawn = millis();
+        ultimoTempoAtualizado = millis();
+      }
+function iniciarAudioFundo() {
+  userStartAudio().then(() => {
+    if (musicaFundo && !musicaFundo.isPlaying()) {
+      musicaFundo.setVolume(1);
+      musicaFundo.loop();
+    }
+  });
+}
+
+function touchStarted() {
+
+  iniciarAudioFundo();
+
+  if (
+    touches.length > 0 &&
+    clicarBotaoPularTutorial(touches[0].x, touches[0].y)
+  ) {
+    return false;
+  }
+
+  if (avancarTutorial()) {
+    return false;
+  }
+
+  if ((vidas <= 0 || tempo <= 0) && tryAgainBtn) {
+    let mx = touches[0].x;
+    let my = touches[0].y;
+
+    if (
+      mx >= tryAgainBtn.x &&
+      mx <= tryAgainBtn.x + (tryAgainBtn.w || tryAgainBtn.size) &&
+      my >= tryAgainBtn.y &&
+      my <= tryAgainBtn.y + (tryAgainBtn.h || tryAgainBtn.size)
+    ) {
+      reiniciarJogo();
+      return false;
+    }
+  }
+
+  return false;
+}
+
+
+function mousePressed() {
+
+  iniciarAudioFundo();
+
+  if (clicarBotaoPularTutorial(mouseX, mouseY)) {
+    return false;
+  }
+
+  if (avancarTutorial()) {
+    return false;
+  }
+
+  if ((vidas <= 0 || tempo <= 0) && tryAgainBtn) {
+    let mx = mouseX;
+    let my = mouseY;
+
+    if (
+      mx >= tryAgainBtn.x &&
+      mx <= tryAgainBtn.x + (tryAgainBtn.w || tryAgainBtn.size) &&
+      my >= tryAgainBtn.y &&
+      my <= tryAgainBtn.y + (tryAgainBtn.h || tryAgainBtn.size)
+    ) {
+      reiniciarJogo();
+      return false;
+    }
+  }
+
+  return false;
+}
+    </script>
+  </body>
+</html>
+
+
+
+
