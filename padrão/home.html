@@ -90,10 +90,15 @@
       let backgroundLoading;
 
       let vidas = 3;
-      let tempo = 30;
+      let tempo = 25;
       let pontos = 0;
       let ultimoSpawn = 0;
       let intervaloSpawn = 0;
+      const COR_CARREGAMENTO = "#FF3FA4";
+      let tempoPartida = 0;
+      let protecaoRestante = 0;
+      let ondasGeradas = 0;
+      let ultimoFoiObstaculo = false;
 
       let pedraImg, boiaAzul, boiaConfete;
       let gameOverImg, tryAgainIcon;
@@ -250,6 +255,10 @@
           url: "./assets/flor.png",
         },
         {
+          name: "cupom5",
+          url: "./assets/cupom5.png",
+        },
+        {
           name: "cupom10",
           url: "./assets/cupom10.png",
         },
@@ -260,10 +269,6 @@
         {
           name: "cupom20",
           url: "./assets/cupom20.png",
-        },
-        {
-          name: "cupomFree",
-          url: "./assets/cupom100.png",
         },
       ];
 
@@ -330,10 +335,10 @@
         fundoCancun = imagensCarregadas.fundoCancun;
         capivara = imagensCarregadas.capivara;
         cupomImgs = {
+          5: imagensCarregadas.cupom5,
           10: imagensCarregadas.cupom10,
           15: imagensCarregadas.cupom15,
           20: imagensCarregadas.cupom20,
-          free: imagensCarregadas.cupomFree,
         };
         capivaraStanding = imagensCarregadas.capivaraStanding;
         capivaraSurfista = imagensCarregadas.capivaraSurfista;
@@ -414,11 +419,7 @@
 
         carregarAssets();
 
-        let laneWidth = (width - margemTela * 2) / totalLanes;
-
-        for (let i = 0; i < totalLanes; i++) {
-          lanes.push(margemTela + i * laneWidth + laneWidth / 2 - itemSize / 2);
-        }
+        atualizarLanes();
 
         document.addEventListener("touchmove", (e) => e.preventDefault(), {
           passive: false,
@@ -499,7 +500,7 @@
             fill("#fff");
             rect((width - barraWidth) / 2, yBar, barraWidth, barraHeight, 10);
 
-            fill("#FF3FA4");
+            fill(COR_CARREGAMENTO);
             let progresso = assetsCarregados / totalAssets;
             rect(
               (width - barraWidth) / 2,
@@ -551,7 +552,7 @@
             fill("#fff");
             rect(xBar, yBar, barraMobileW, barraMobileH, 12);
 
-            fill("#1E88E5");
+            fill(COR_CARREGAMENTO);
             let progresso = assetsCarregados / totalAssets;
             rect(xBar, yBar, barraMobileW * progresso, barraMobileH, 12);
 
@@ -774,15 +775,15 @@
       function pegarMensagemTutorial() {
         if (tutorialEtapa === 0) {
           return {
-            titulo: "Atenção aos obstáculos",
-            texto: "Frio e chuva fazem você perder vidas. Desvie deles para continuar na partida.",
+            titulo: "Pegue os itens especiais",
+            texto: "Recolha os itens especiais para conseguir pontos e avançar de nível.",
           };
         }
 
         if (tutorialEtapa === 1) {
           return {
-            titulo: "Pegue os itens da especiais",
-            texto: "Recolha os itens especiais para conseguir pontos e avançar de nível.",
+            titulo: "Atenção aos obstáculos",
+            texto: "Frio e chuva fazem você perder vidas. Desvie deles para continuar na partida.",
           };
         }
 
@@ -827,14 +828,14 @@
         if (!tutorialAtivo || tutorialPausado) return;
 
         if (tutorialEtapa === 0 && !tutorialItemDestacado) {
-          tutorialItemDestacado = gerarItemTutorial(pedraFrio || pedraChuva, 1, true);
-        }
-
-        if (tutorialEtapa === 1 && !tutorialItemDestacado) {
           tutorialItemDestacado = gerarItemTutorial(
             boiaFlor || boiaAzul || boiaConfete,
             2,
           );
+        }
+
+        if (tutorialEtapa === 1 && !tutorialItemDestacado) {
+          tutorialItemDestacado = gerarItemTutorial(pedraFrio || pedraChuva, 1, true);
         }
 
         if (tutorialEtapa <= 1 && tutorialItemDestacado) {
@@ -856,12 +857,13 @@
         tutorialItemDestacado = null;
         tutorialSkipBtn = null;
         vidas = 3;
-        tempo = 30;
+        tempo = 25;
         pontos = 0;
         pedras = [];
         boias = [];
         ultimoSpawn = millis();
         ultimoTempoAtualizado = millis();
+        reiniciarRitmo();
         showToast("Valendo!", 1200);
       }
 
@@ -892,7 +894,7 @@
         }
 
         if (tutorialEtapa === 0) {
-          pedras = [];
+          boias = [];
           tutorialEtapa = 1;
           tutorialPausado = false;
           tutorialItemDestacado = null;
@@ -900,7 +902,7 @@
         }
 
         if (tutorialEtapa === 1) {
-          boias = [];
+          pedras = [];
           tutorialEtapa = 2;
           tutorialItemDestacado = null;
           return true;
@@ -953,14 +955,35 @@
 
       history.pushState(null, null, location.href);
 
+      function atualizarLanes() {
+        itemSize = height * 0.072;
+        const margem = min(margemTela, width * 0.08);
+        const laneWidth = (width - margem * 2) / totalLanes;
+        lanes = Array.from({ length: totalLanes }, (_, i) =>
+          margem + (i + 0.5) * laneWidth - itemSize / 2,
+        );
+        for (const item of pedras.concat(boias)) item.x = lanes[item.lane];
+      }
+
+      function reiniciarRitmo() {
+        tempoPartida = 0;
+        protecaoRestante = 0;
+        ondasGeradas = 0;
+        ultimoFoiObstaculo = false;
+        capivaraX = width / 2;
+        arrastando = false;
+        capivaraAtual = capivara;
+      }
+
       function windowResized() {
         resizeCanvas(windowWidth, windowHeight);
+        atualizarLanes();
         capivaraX = constrain(capivaraX, 0, width);
       }
 
       function inicializarConfetesBrasil() {
         const cores = ["#0065BA", "#30D6D6", "#F58410"];
-        const total = isMobile ? 42 : 70;
+        const total = isMobile ? 60 : 70;
         confetesBrasil = [];
 
         for (let i = 0; i < total; i++) {
@@ -969,7 +992,7 @@
             y: random(-height, height),
             w: isMobile ? random(24, 42) : random(6, 14),
             h: isMobile ? random(40, 70) : random(10, 22),
-            speed: random(60, 150),
+            speed: isMobile ? random(190, 470) : random(78, 195),
             drift: random(-35, 35),
             rot: random(TWO_PI),
             rotSpeed: random(-2.5, 2.5),
@@ -1204,11 +1227,7 @@
       }
 
       function draw() {
-        let dt = deltaTime / 1000;
-        if (isMobile) {
-          dt *= 2;
-        }
-        dt = min(dt, 0.05);
+        const dt = document.hidden ? 0 : min(deltaTime / 1000, 0.05);
 
         if (assetsCarregados < totalAssets) {
           desenharTelaLoading();
@@ -1250,24 +1269,28 @@
 
         image(fundoAtual, offsetX, offsetY, drawWidth, drawHeight);
 
-        let pontosParaVelocidade = Math.min(pontos, 320);
-        velocidadeBonus = jogoAtivo
-          ? Math.floor(pontosParaVelocidade / 80)
-          : 0;
+        if (jogoAtivo && !tutorialAtivo) {
+          tempoPartida += dt;
+          protecaoRestante = max(0, protecaoRestante - dt);
+        }
+        // Aceleracao perceptivel desde o inicio, com teto para preservar a reacao.
+        const dificuldade = tutorialAtivo ? 0 : constrain(
+          tempoPartida / 45 + pontos / 500, 0, 1,
+        );
 
         if (!marco150Ativado && pontos >= 100) {
-          tempo = 20;
+          tempo = max(tempo, 20);
           vidas = 3;
           marco150Ativado = true;
           modoAvancado = true;
         }
         if (!marco250Ativado && pontos >= 200) {
-          tempo = 10;
+          tempo = max(tempo, 15);
           vidas = 3;
           marco250Ativado = true;
         }
         if (!marco350Ativado && pontos >= 300) {
-          tempo = 7;
+          tempo = max(tempo, 12);
           vidas = 3;
           marco350Ativado = true;
         }
@@ -1278,11 +1301,9 @@
 
         atualizarTutorial();
 
-        if (!tutorialAtivo && jogoAtivo && millis() - ultimoTempoAtualizado >= 1000) {
-          if (tempo > 0 && vidas > 0) {
-            tempo--;
-            ultimoTempoAtualizado = millis();
-          }
+        if (!tutorialAtivo && jogoAtivo && vidas > 0) {
+          tempo = max(0, tempo - dt);
+          if (tempo === 0) jogoAtivo = false;
         }
 
         let imagemCapivaraFinal;
@@ -1304,6 +1325,10 @@
           alturaCapivara = escalaCapivara * 1.18;
         }
 
+        push();
+        if (protecaoRestante > 0 && floor(protecaoRestante * 12) % 2 === 0) {
+          tint(255, 110);
+        }
         image(
           imagemCapivaraFinal,
           capivaraX - larguraCapivara / 2,
@@ -1312,51 +1337,34 @@
           alturaCapivara,
         );
 
-        if (!isMobile) {
-          if (keyIsDown(LEFT_ARROW)) capivaraX -= 5;
-          if (keyIsDown(RIGHT_ARROW)) capivaraX += 5;
+        pop();
+        if (!isMobile && jogoAtivo && !tutorialPausado) {
+          if (keyIsDown(LEFT_ARROW)) capivaraX -= width * 0.85 * dt;
+          if (keyIsDown(RIGHT_ARROW)) capivaraX += width * 0.85 * dt;
         }
-        capivaraX = constrain(capivaraX, 0, width);
+        capivaraX = constrain(capivaraX, larguraCapivara / 2, width - larguraCapivara / 2);
+        const jogadorY = height - alturaCapivara / 2 - 20;
 
         let agora = millis();
 
-        let intervaloBase = tutorialAtivo ? 999999 : isMobile ? 950 : 700;
-        let aumentoFrequencia = 1 + Math.floor(pontos / 80) * 0.25;
-        intervaloSpawn = max(
-          intervaloBase / aumentoFrequencia,
-          isMobile ? 650 : 350,
-        );
-        if (jogoAtivo && agora - ultimoSpawn > intervaloSpawn) {
-          let quantidade = 1;
-
-          if (pontos >= 300) {
-            quantidade = 2;
-          }
-
-          for (let i = 0; i < quantidade; i++) {
-            gerarItem();
-          }
-
-          let maxItens = isMobile ? 3 : 4;
-          if (pedras.length + boias.length > maxItens * 5) {
-          }
-
+        intervaloSpawn = 650 - dificuldade * 225;
+        if (jogoAtivo && !tutorialAtivo && !document.hidden && agora - ultimoSpawn >= intervaloSpawn) {
+          // Ondas extras trazem uma coleta garantida, sem duplicar os perigos.
+          ondasGeradas++;
+          gerarItem(dificuldade, ondasGeradas <= 3);
+          if (ondasGeradas % 4 === 0) gerarItem(dificuldade, true);
           ultimoSpawn = agora;
         }
 
-        let baseVelocidade = 480;
-
-        let multiplicadorPorNivel = 0.22;
-
-        velocidadeReal =
-          baseVelocidade * (1 + multiplicadorPorNivel * velocidadeBonus);
+        // Tempo de travessia semelhante em telas altas e baixas.
+        velocidadeReal = height * (0.46 + dificuldade * 0.42);
 
         for (let i = pedras.length - 1; i >= 0; i--) {
           let p = pedras[i];
 
           image(p.tipo, p.x, p.y, itemSize, itemSize);
 
-          if (!tutorialPausado) {
+          if (jogoAtivo && !tutorialPausado) {
             p.y += velocidadeReal * dt;
           }
 
@@ -1364,12 +1372,15 @@
             p.x + itemSize / 2,
             p.y + itemSize / 2,
             capivaraX,
-            height - itemSize / 2 - 20,
+            jogadorY,
           );
 
-          if (jogoAtivo && distancia < itemSize) {
-            if (tutorialAtivo) vidas = max(1, vidas - 1);
-            else vidas--;
+          if (jogoAtivo && !tutorialPausado && distancia < itemSize * 0.85) {
+            if (!tutorialAtivo && protecaoRestante <= 0) {
+              vidas--;
+              protecaoRestante = 1.2;
+              if (vidas <= 0) jogoAtivo = false;
+            }
             pedras.splice(i, 1);
           } else if (p.y > height) {
             pedras.splice(i, 1);
@@ -1385,11 +1396,11 @@
           }
 
           if (
-            dist(b.x, b.y, capivaraX, height - itemSize / 2 - 20) < itemSize
+            dist(b.x + itemSize / 2, b.y + itemSize / 2, capivaraX, jogadorY) < itemSize
           ) {
-            if (!jogoAtivo) continue;
+            if (!jogoAtivo || tutorialAtivo || tutorialPausado) continue;
 
-            tempo += 2;
+            tempo += 1;
             pontos += 5;
             boias.splice(i, 1);
           } else if (b.y > height) {
@@ -1406,7 +1417,7 @@
           textSize(textSizeVal);
           textAlign(LEFT, TOP);
           textStyle(BOLD);
-          text(`Tempo: ${tempo}`, 20, 20);
+          text(`Tempo: ${Math.ceil(tempo)}`, 20, 20);
           text(`Vidas: ${vidas}`, 20, 20 + lineHeight);
           text(`Pontuação: ${pontos}`, 20, 20 + lineHeight * 2);
           noStroke();
@@ -1447,12 +1458,13 @@
           .map((_, i) => i)
           .filter((i) => !ocupadas.includes(i));
 
-        if (livres.length === 0) return floor(random(totalLanes));
+        if (livres.length === 0) return null;
 
         return random(livres);
       }
 
-      function gerarItem() {
+      function gerarItem(dificuldade = 0, somenteColeta = false) {
+        if (pedras.length + boias.length >= 16) return;
         let pedraAtual;
         let boiasAtuais = [];
 
@@ -1471,12 +1483,16 @@
         }
 
         let lane = pegarLaneLivre();
+        if (lane === null) return;
         let xPos = lanes[lane];
 
-        if (random() < 0.45) {
+        const obstaculo = !somenteColeta && !ultimoFoiObstaculo &&
+          tempoPartida > 3 && random() < 0.40 + dificuldade * 0.20;
+        if (!somenteColeta) ultimoFoiObstaculo = obstaculo;
+        if (obstaculo) {
           pedras.push({
             x: xPos,
-            y: random(-height * 0.6, -itemSize),
+            y: -itemSize * 1.5,
 
             tipo: pedraAtual,
             lane: lane,
@@ -1484,7 +1500,7 @@
         } else {
           boias.push({
             x: xPos,
-            y: random(-height * 0.6, -itemSize),
+            y: -itemSize * 1.5,
 
             tipo: random(boiasAtuais),
             lane: lane,
@@ -1496,14 +1512,14 @@
         let chance = random(100);
 
         if (pontos >= 300) {
-          if (chance < 70) return "20";
-          return "free";
+          if (chance < 70) return "15";
+          return "20";
         } else if (pontos >= 200 && pontos < 300) {
-          if (chance < 50) return "20";
-          return "15";
+          if (chance < 50) return "15";
+          return "10";
         } else if (pontos >= 50 && pontos < 200) {
-          if (chance < 70) return "10";
-          return "15";
+          if (chance < 70) return "5";
+          return "10";
         }
 
         return null;
@@ -1511,7 +1527,7 @@
 
       function touchMoved() {
         if (!jogoAtivo) return false;
-        if (isMobile) {
+        if (isMobile && touches.length > 0 && !tutorialPausado) {
           capivaraX = constrain(touches[0].x, 0, width);
           if (!arrastando) {
             capivaraAtual = capivaraStanding;
@@ -1548,7 +1564,7 @@
       function reiniciarJogo() {
         velocidadeBonus = 0;
         vidas = 3;
-        tempo = 30;
+        tempo = 25;
         pontos = 0;
         pedras = [];
         boias = [];
@@ -1561,6 +1577,7 @@
         confetesBrasil = [];
         ultimoSpawn = millis();
         ultimoTempoAtualizado = millis();
+        reiniciarRitmo();
       }
 function iniciarAudioFundo() {
   userStartAudio().then(() => {
